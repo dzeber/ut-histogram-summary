@@ -3,6 +3,8 @@ TODO
 *~
 rhipe-java.log
 .Rhistory
+*.html
+*.log
 
 # Mac crap
 .DS_Store

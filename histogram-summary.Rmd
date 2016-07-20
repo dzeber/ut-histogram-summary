@@ -1,0 +1,89 @@
+---
+title: Summary of Telemetry Histograms
+date: Updated `r format(Sys.Date(), "%B %d, %Y")`
+output:
+    html_document:
+        theme: flatly
+---
+
+<!-- Quick fix for extended left margin when TOC is not present -->
+<style type="text/css">
+.main-container { margin-left: 50px; }
+</style>
+
+```{r setup, include = FALSE}
+## Knitr options:
+## Don't show code chunks.
+knitr::opts_chunk$set(
+    echo = FALSE
+)
+library(rjson)
+library(DT)
+library(data.table)
+```
+
+```{r load-hist}
+## Load the full list of histograms, and convert to a DT.
+histList <- fromJSON(file = "Histograms.json")
+## Format the histogram info blocks to have all the same fields, and insert
+## the name.
+allFields <- unique(unlist(lapply(histList, names)))
+histList <- mapply(function(histname, histinfo) {
+    histinfo <- lapply(allFields, function(fld) {
+        val <- histinfo[[fld]]
+        if(is.null(val) || length(val) == 0) return(NA)
+        ## Join array-valued fields into a single string.
+        if(length(val) > 1) val <- paste(val, collapse = ", ")
+        val
+    })
+    names(histinfo) <- allFields
+    histinfo$name <- histname
+    histinfo
+}, names(histList), histList, USE.NAMES = FALSE, SIMPLIFY = FALSE)
+histDT <- rbindlist(histList)
+```
+
+# Opt-out histograms
+
+Below is a list of all Telemetry histograms currently recorded in the opt-out
+release population, together with relevant information. This is read from the
+latest [Histograms.json](https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/Histograms.json).
+
+```{r release-hist}
+releaseHistDT <- histDT[sapply(releaseChannelCollection, identical, "opt-out")]
+## Order by histogram name.
+releaseHistDT <- releaseHistDT[order(name)]
+displayDT <- releaseHistDT[, list(
+    "Name" = name,
+    "Description" = description,
+    ## Missing value for 'keyed' field means not keyed.
+    "Keyed?" = ifelse(is.na(keyed), FALSE, keyed),
+    "Type" = kind,
+    "Num values/buckets" = ifelse(is.na(n_values), n_buckets, n_values),
+    "Expires?" = !(expires_in_version %in% c("never", "default"))
+)]
+datatable(displayDT, options = list(
+    #autoWidth = FALSE,
+    ## Show entire table on single page.
+    paging = FALSE,
+    ## Don't show any UI for paging or filtering.
+    dom = "t",
+    ## Allow addon names to wrap at '_'.
+    columnDefs = list(
+        list(
+            targets = 1,
+            render = JS(
+                "function(data, type, row, meta) {",
+                    "return data.replace('_', '_&#8203;')",
+                "}"
+            )
+        )
+#        ,list(
+#            targets = 4,
+#            width = '500px'
+#        )
+    )
+))
+```
+
+
