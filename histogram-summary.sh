@@ -9,7 +9,7 @@ rm -f Histograms.json
 wget $HISTOGRAM_URL
 
 ## Re-render the HTML page.
-Rscript --no-save --vanilla -e 'rmarkdown::render("histogram-summary.Rmd")'
+Rscript --no-save -e 'rmarkdown::render("histogram-summary.Rmd")'
 
 ## Push new file.
 WWW_SERVER_DIR="\"\$WWW/dzeber/tmp\""
